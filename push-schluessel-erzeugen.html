@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brassmusix – Push-Schlüssel erzeugen</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#121212;color:#eee;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5}
+  h1{color:#D9A232;font-size:26px}
+  button{background:#D9A232;color:#121212;border:0;border-radius:10px;padding:12px 20px;font-size:16px;font-weight:700;cursor:pointer}
+  label{display:block;margin:18px 0 6px;font-weight:700}
+  textarea{width:100%;box-sizing:border-box;background:#1e1e1e;color:#fff;border:1px solid #444;border-radius:8px;padding:10px;font:14px ui-monospace,Menlo,Consolas,monospace;resize:none}
+  .hint{color:#aaa;font-size:14px}
+  .warn{color:#ffb347}
+  .row{display:flex;gap:8px;align-items:flex-start}
+  .row textarea{flex:1}
+  .copy{padding:8px 12px;font-size:14px}
+</style>
+</head>
+<body>
+<h1>Push-Schlüssel erzeugen</h1>
+<p>Diese Seite erzeugt das Schlüsselpaar für die Push-Nachrichten der Brassmusix-App. Die Schlüssel werden <b>nur hier in deinem Browser</b> berechnet und nirgendwohin geschickt. Du kannst die Seite auch ohne Internet öffnen.</p>
+<p><button id="los">Schlüssel erzeugen</button></p>
+
+<div id="ergebnis" hidden>
+  <label>Public Key → in <code>index.html</code> bei <code>vapidPublicKey</code> und in Supabase als Secret <code>VAPID_PUBLIC_KEY</code></label>
+  <div class="row"><textarea id="pub" rows="3" readonly></textarea><button class="copy" data-c="pub">Kopieren</button></div>
+  <label>Private Key → nur in Supabase als Secret <code>VAPID_PRIVATE_KEY</code></label>
+  <div class="row"><textarea id="priv" rows="2" readonly></textarea><button class="copy" data-c="priv">Kopieren</button></div>
+  <p class="hint warn">Den Private Key niemals in die App, auf GitHub oder in WhatsApp schreiben. Am besten beide Werte sofort in Supabase eintragen und zusätzlich in einem Passwort-Manager ablegen.</p>
+  <p class="hint">Nur einmal erzeugen: Neue Schlüssel bedeuten, dass alle in der App Push neu aktivieren müssen.</p>
+</div>
+
+<script>
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromB64url = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+document.getElementById("los").addEventListener("click", async () => {
+  const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const jwk = await crypto.subtle.exportKey("jwk", kp.privateKey);
+  const x = fromB64url(jwk.x), y = fromB64url(jwk.y);
+  const raw = new Uint8Array(65); raw[0] = 4; raw.set(x, 1); raw.set(y, 33);
+  document.getElementById("pub").value = b64url(raw);
+  document.getElementById("priv").value = jwk.d;
+  document.getElementById("ergebnis").hidden = false;
+});
+document.querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", async () => {
+  const t = document.getElementById(b.dataset.c);
+  try { await navigator.clipboard.writeText(t.value); b.textContent = "Kopiert ✓"; } catch { t.select(); b.textContent = "Strg/⌘+C"; }
+  setTimeout(() => b.textContent = "Kopieren", 2000);
+}));
+</script>
+</body>
+</html>
