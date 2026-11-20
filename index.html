@@ -447,7 +447,14 @@ async function LiveStore() {
     },
     async einladungEinloesen(code) {
       const { data: d, error } = await sb.functions.invoke("einladung", { body: { aktion: "einloesen", code } });
-      if (error || d?.error) throw new Error(d?.error || "Code ungültig, abgelaufen oder schon benutzt.");
+      if (error) {
+        let msg = "";
+        try { const j = await error.context.json(); msg = j?.error || j?.message || ""; } catch { }
+        const st = error.context?.status;
+        if (!msg) msg = st === 404 ? "Funktion „einladung“ nicht gefunden (in Supabase angelegt?)" : st === 401 ? "Funktion „einladung“ verlangt Anmeldung – bitte dort „Verify JWT“ ausschalten." : `Server-Fehler${st ? " " + st : ""}: ${error.message || "unbekannt"}`;
+        throw new Error(msg);
+      }
+      if (d?.error) throw new Error(d.error);
       const { error: e2 } = await sb.auth.verifyOtp({ token_hash: d.token_hash, type: "magiclink" });
       if (e2) throw e2;
       await this.init();
