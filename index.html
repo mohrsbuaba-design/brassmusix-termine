@@ -1198,7 +1198,7 @@ function viewVerwaltung() {
       ${S.mode === "live" ? `<div><label>E-Mail (optional)</label><input name="email" type="email" value="${esc(m.email || "")}"></div>` : "<div></div>"}</div>` : ""}
       <label>Register</label><div class="chips">${REGISTER.map(r => `<label class="check" style="margin:2px 8px 2px 0;font-size:14px"><input type="checkbox" name="reg" value="${r.id}" ${m.register.includes(r.id) ? "checked" : ""} ${canM ? "" : "disabled"}>${r.name}</label>`).join("")}</div>
       <label>Rollen</label><div>${Object.entries(ROLLEN).map(([k, l]) => `<label class="check" style="margin:2px 0;font-size:14px"><input type="checkbox" name="rolle" value="${k}" ${m.rollen.includes(k) ? "checked" : ""} ${admin ? "" : "disabled"}>${l}</label>`).join("")}</div>
-      ${canM ? `<div class="actions"><button class="mini primary">Speichern</button>${m.id !== me.id ? `<button class="mini" type="button" data-einladen="${m.id}">${st.angemeldet ? "Neues Gerät / neu einladen" : st.offen ? "Neuen Code erzeugen" : "Einladen"}</button>` : ""}</div>` : ""}
+      ${canM ? `<div class="actions"><button class="mini primary">Speichern</button><button class="mini" type="button" data-einladen="${m.id}">${m.id === me.id ? "Code für weiteres Gerät" : st.angemeldet ? "Neues Gerät / neu einladen" : st.offen ? "Neuen Code erzeugen" : "Einladen"}</button></div>` : ""}
     </form>`); }).join("")}
     ${canM ? `<button id="neuM" class="primary">+ Neuen Musiker anlegen</button>` : ""}
     ${admin || has("auftritte") || has("proben") ? `
@@ -1264,7 +1264,9 @@ function viewVerwaltung() {
     if (istPlatzhalter(m)) { toast("Bitte zuerst den richtigen Namen eintragen und speichern."); return; }
     if (!m.register.length && !await ask(`${m.name} hat noch kein Register. Trotzdem einladen?`)) return;
     const st = einladeStatus(m);
-    if ((st.offen || st.angemeldet) && !await ask(st.angemeldet ? `${m.name} ist schon angemeldet. Neuen Code für ein weiteres oder neues Handy erzeugen?` : "Es gibt schon einen offenen Code. Neuen erzeugen? Der alte wird ungültig.")) return;
+    if (m.id === me.id) {
+      if (!await ask("Code für ein weiteres Gerät (z. B. PC oder Tablet) erzeugen? Dieses Gerät bleibt angemeldet.")) return;
+    } else if ((st.offen || st.angemeldet) && !await ask(st.angemeldet ? `${m.name} ist schon angemeldet. Neuen Code für ein weiteres oder neues Handy erzeugen?` : "Es gibt schon einen offenen Code. Neuen erzeugen? Der alte wird ungültig.")) return;
     try { const r = await S.einladungErstellen(m.id); einladungZeigen(m, r.code, r.gueltig_bis); } catch (e) { toast("Fehler: " + esc(e.message), 6000); }
   }));
   app().querySelectorAll("[data-af]").forEach(f => f.addEventListener("submit", async e => {
