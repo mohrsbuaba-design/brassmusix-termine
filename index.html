@@ -138,6 +138,8 @@ details.fold>summary::after{content:"";width:9px;height:9px;border-right:2px sol
 details.fold[open]>summary::after{transform:rotate(225deg);margin:4px 4px 0 0}
 details.fold>summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:10px}
 .fold-body{padding:0 14px 14px}
+.fold-body details.fold{background:var(--card2);margin-bottom:8px}
+.fold-body details.fold>summary{min-height:50px}
 .fs-title{font-weight:700;font-size:16px}
 .fs-sub{font-size:13px;color:var(--muted);margin-top:2px}
 @media (prefers-reduced-motion:reduce){details.fold>summary::after{transition:none}}
@@ -253,11 +255,11 @@ const zeit = t => t.von ? (t.bis ? `${t.von}–${t.bis} Uhr` : `ab ${t.von} Uhr`
 const tageSeit = ts => ts ? Math.floor((Date.now() - new Date(ts).getTime()) / 864e5) : null;
 const seitText = ts => { const n = tageSeit(ts); return n === null ? "" : n === 0 ? "heute" : n === 1 ? "seit 1 Tag" : `seit ${n} Tagen`; };
 function toast(msg, ms = 3200) { const t = $("#toast"); t.innerHTML = msg; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = "none", ms); }
-function ask(msg) {
+function ask(msg, ja = "Ja", nein = "Abbrechen") {
   return new Promise(res => {
     const o = document.createElement("div");
     o.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px";
-    o.innerHTML = `<div class="card" style="max-width:420px;width:100%"><p style="margin-top:0">${esc(msg)}</p><div class="actions"><button class="primary" data-ok>Ja</button><button data-no>Abbrechen</button></div></div>`;
+    o.innerHTML = `<div class="card" style="max-width:420px;width:100%"><p style="margin-top:0">${esc(msg)}</p><div class="actions"><button class="primary" data-ok>${esc(ja)}</button><button data-no>${esc(nein)}</button></div></div>`;
     document.body.appendChild(o);
     o.querySelector("[data-ok]").onclick = () => { o.remove(); res(true); };
     o.querySelector("[data-no]").onclick = () => { o.remove(); res(false); };
@@ -769,7 +771,7 @@ function viewDetail(id) {
       <textarea id="kom" rows="2" placeholder="z. B. komme 30 Min. später · nur bis 22 Uhr · kann evtl. Aushilfe mitbringen">${esc(meineA?.kommentar || "")}</textarea>
       <div class="actions" style="margin-top:6px"><button class="mini" id="komsave">Bemerkung speichern</button></div>
     </div>` : ""}
-    <h2>Besetzung</h2>
+    ${fold(`bes-${t.id}`, "Besetzung", t.status !== "abgesagt" ? `<span class="p-${b.st}">${stLabel[b.st]}</span>` : "", `
     ${[...b.rows].sort((x, y) => rang(x) - rang(y)).map(r => {
       const sym = st => st === "zu" ? "✓" : st === "ab" ? "✗" : "?";
       const nm = (name, st) => st ? `${name} ${sym(st)}` : `<span style="color:var(--gold)">${name} ?</span>`;
@@ -787,9 +789,8 @@ function viewDetail(id) {
         ${darf && antwortMoeglich(t) && (r.state === "luecke" || r.aus.length || openChains.has(t.id + r.reg.id)) ? kette(t, r)
           : darf && antwortMoeglich(t) && (t.art === "probe" || r.state !== "ok") ? `<button class="mini" style="margin-top:8px" data-open="${r.reg.id}">Aushilfe einladen …</button>` : ""}`);
     }).join("") || `<p class="muted">Keine Register.</p>`}
-    ${t.art === "probe" ? `<p class="hint">Probe findet statt, wenn Schlagzeug, Sousafon, Posaune, Marching Baritone und mind. 1 Trompete dabei sind. Gesang kann optional dazugeholt werden.</p>` : `<p class="hint">Auftritt: alle Musiker:innen und Gesang müssen zugesagt haben oder ersetzt sein${t.eigener_mischer ? ", dazu der Mischer" : ""}.</p>`}
-    ${darf ? `<h2>Organisation</h2>
-    ${fold(`org-${t.id}`, "Bearbeiten, erinnern, absagen", `Noch ohne Antwort: ${ohneAntwort.length ? esc(ohneAntwort.map(m => m.name).join(", ")) : "niemand"}`, `
+    ${t.art === "probe" ? `<p class="hint">Probe findet statt, wenn Schlagzeug, Sousafon, Posaune, Marching Baritone und mind. 1 Trompete dabei sind. Gesang kann optional dazugeholt werden.</p>` : `<p class="hint">Auftritt: alle Musiker:innen und Gesang müssen zugesagt haben oder ersetzt sein${t.eigener_mischer ? ", dazu der Mischer" : ""}.</p>`}`)}
+    ${darf ? `${fold(`org-${t.id}`, "Organisation", `Bearbeiten, erinnern, absagen · noch ohne Antwort: ${ohneAntwort.length ? esc(ohneAntwort.map(m => m.name).join(", ")) : "niemand"}`, `
       <div class="actions" style="margin-top:0">
         <a class="btn mini" href="#/edit/${t.id}">Bearbeiten</a>
         ${ohneAntwort.length && antwortMoeglich(t) ? `<button class="mini" id="erinnern">Erinnerung an ${ohneAntwort.length} senden</button>` : ""}
@@ -802,7 +803,7 @@ function viewDetail(id) {
     await S.upsert("rueckmeldungen", { termin_id: t.id, mitglied_id: me.id, status: meineA.status, kommentar: $("#kom").value.trim(), updated_at: new Date().toISOString(), eingetragen_von: null });
     toast("Bemerkung gespeichert");
   });
-  app().querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => { openChains.add(t.id + el.dataset.open); UI_OFFEN.add(`r-${t.id}-${el.dataset.open}`); viewDetail(t.id); }));
+  app().querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => { openChains.add(t.id + el.dataset.open); UI_OFFEN.add(`bes-${t.id}`); UI_OFFEN.add(`r-${t.id}-${el.dataset.open}`); viewDetail(t.id); }));
   app().querySelectorAll("[data-anfragen]").forEach(el => el.addEventListener("click", async () => {
     const aus = D().aushilfen.find(x => x.id === el.dataset.anfragen);
     const a = { id: uid(), termin_id: t.id, aushilfe_id: aus.id, aushilfe_name: aus.name, register: el.dataset.reg, status: "offen", token: el.dataset.token, gesendet_am: new Date().toISOString(), beantwortet_am: null };
@@ -928,14 +929,19 @@ function viewForm(id) {
       const zeitGeaendert = t.datum !== base.datum || (t.von || "") !== base.von || (t.bis || "") !== base.bis;
       const anzahl = D().rueckmeldungen.filter(r => r.termin_id === t.id).length;
       const offeneAus = D().anfragen.filter(a => a.termin_id === t.id && (a.status === "offen" || a.status === "zu"));
-      let neuFragen = false;
-      if (zeitGeaendert && (anzahl || offeneAus.length)) neuFragen = await ask(`Datum oder Uhrzeit geändert. ${anzahl === 1 ? "Die bisherige Rückmeldung passt" : `Die bisherigen ${anzahl} Rückmeldungen passen`} evtl. nicht mehr. Zurücksetzen und alle neu fragen?${offeneAus.length ? ` (${offeneAus.length} Aushilfen-Anfrage(n) werden zurückgezogen – bitte neu anfragen.)` : ""}`);
+      let neuFragen = false, infoPush = false;
+      // Auftritte und Anfragen: Rückmeldungen bleiben bei Änderungen bestehen – die Band wird nur informiert
+      if (base.art !== "probe" && t.art !== "probe") {
+        const geaendert = zeitGeaendert || (t.ort || "") !== base.ort || (t.titel || "") !== base.titel || !!t.pa !== !!base.pa || !!t.eigener_mischer !== !!base.eigener_mischer || (t.beschreibung || "") !== base.beschreibung;
+        if (geaendert && anzahl && antwortMoeglich({ ...t, ...base })) infoPush = await ask("Die Rückmeldungen bleiben bestehen – niemand muss neu zu- oder absagen. Die Band per Push über die Änderung informieren?", "Ja, Push senden", "Nur speichern");
+      } else if (zeitGeaendert && (anzahl || offeneAus.length)) neuFragen = await ask(`Datum oder Uhrzeit geändert. ${anzahl === 1 ? "Die bisherige Rückmeldung passt" : `Die bisherigen ${anzahl} Rückmeldungen passen`} evtl. nicht mehr. Zurücksetzen und alle neu fragen?${offeneAus.length ? ` (${offeneAus.length} Aushilfen-Anfrage(n) werden zurückgezogen – bitte neu anfragen.)` : ""}`);
       await S.upsert("termine", { ...t, ...base, frist: base.frist || null });
       if (neuFragen) {
         await S.removeRueckmeldungen(t.id);
         for (const a of offeneAus) await S.upsert("anfragen", { ...a, status: "zurueckgezogen" });
         await S.notify(eingeladen(t).map(m => m.id), `Geändert: ${base.titel}`, `Neu: ${fmtDate(base.datum)}, ${zeit(base)} – bitte neu zu- oder absagen.`, `#/t/${t.id}`);
       }
+      if (infoPush) await S.notify(eingeladen(t).map(m => m.id), `Geändert: ${base.titel}`, `${fmtDate(base.datum)}, ${zeit(base)}${base.ort ? " · " + base.ort : ""} – deine Rückmeldung bleibt. Falls du jetzt nicht mehr kannst, bitte in der App ändern.`, `#/t/${t.id}`);
       location.hash = "#/t/" + t.id; return;
     }
     let first;
