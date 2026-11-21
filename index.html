@@ -236,6 +236,8 @@ const ROLLEN = {
   uebersicht: "Übersicht ansehen (kommende Termine & Statistik)",
   anwesenheit: "Anwesenheit ansehen",
 };
+// Setlisten-Rechte vergibt nur der Superadmin – direkt in den Setlisten unter „Rechte verwalten“
+const SL_ROLLEN = { superadmin: "Superadmin", setlisten: "Setlisten bearbeiten", abstimmung: "Abstimmungen starten" };
 const ART = { probe: "Probe", anfrage: "Auftrittsanfrage", auftritt: "Auftritt" };
 
 /* ---------- Helfer ---------- */
@@ -507,7 +509,7 @@ async function LiveStore() {
 /* ---------- Logik ---------- */
 let S, me = null;
 const D = () => S.data;
-const has = r => !!me && (me.rollen.includes(r) || me.rollen.includes("admin"));
+const has = r => !!me && (me.rollen.includes(r) || me.rollen.includes("admin") || (me.rollen.includes("superadmin") && r !== "zusage"));
 const canEdit = t => has("auftritte") || (t.art === "probe" && has("proben"));
 const canCreate = art => art === "probe" ? (has("proben") || has("auftritte")) : art === "auftritt" ? has("zusage") : has("auftritte");
 const vorbei = t => t.datum < today();
@@ -559,6 +561,7 @@ function renderHeader() {
   $("#logout")?.addEventListener("click", async () => { await S.logout(); me = null; location.hash = "#/"; route(); });
   const tabs = [["#/", "📅", "Termine"]];
   if (me) {
+    tabs.push(["setlisten.html", "🎼", "Setlisten"]);
     if (sehenStat()) tabs.push(["#/auswertung", "📊", "Übersicht"]);
     if (sehenAnw()) tabs.push(["#/anwesenheit", "✅", "Anwesenheit"]);
     tabs.push(["#/verwaltung", "⚙️", has("mitglieder") ? "Verwaltung" : "Mehr"]);
@@ -754,6 +757,7 @@ function viewDetail(id) {
       ${t.art === "anfrage" && antwortMoeglich(t) && darf ? (has("zusage")
         ? `<div class="actions"><button class="primary" id="zusagen">✓ Veranstalter hat zugesagt – Anfrage wird zum Auftritt</button></div>`
         : `<p class="hint">Sobald der Veranstalter zusagt, machen Christoph oder Michael daraus mit einem Klick einen Auftritt.</p>`) : ""}
+      ${t.art === "auftritt" && t.status !== "abgesagt" ? `<div class="actions"><a class="btn" href="setlisten.html#g-${t.id}">🎼 Setliste ansehen</a></div>` : ""}
     </div>
     ${antwortMoeglich(t) && me?.id && eingeladen(t).some(m => m.id === me.id) ? `
     <div class="card${meineA ? "" : " ich-offen"}">
@@ -1197,8 +1201,8 @@ function viewVerwaltung() {
       ${canM ? `<div class="grid2"><div><label>Handynummer (für die Einladung per WhatsApp)</label><input name="telefon" value="${esc(m.telefon || "")}" placeholder="+49 …"></div>
       ${S.mode === "live" ? `<div><label>E-Mail (optional)</label><input name="email" type="email" value="${esc(m.email || "")}"></div>` : "<div></div>"}</div>` : ""}
       <label>Register</label><div class="chips">${REGISTER.map(r => `<label class="check" style="margin:2px 8px 2px 0;font-size:14px"><input type="checkbox" name="reg" value="${r.id}" ${m.register.includes(r.id) ? "checked" : ""} ${canM ? "" : "disabled"}>${r.name}</label>`).join("")}</div>
-      <label>Rollen</label><div>${Object.entries(ROLLEN).map(([k, l]) => `<label class="check" style="margin:2px 0;font-size:14px"><input type="checkbox" name="rolle" value="${k}" ${m.rollen.includes(k) ? "checked" : ""} ${admin ? "" : "disabled"}>${l}</label>`).join("")}</div>
-      ${canM ? `<div class="actions"><button class="mini primary">Speichern</button><button class="mini" type="button" data-einladen="${m.id}">${m.id === me.id ? "Code für weiteres Gerät" : st.angemeldet ? "Neues Gerät / neu einladen" : st.offen ? "Neuen Code erzeugen" : "Einladen"}</button></div>` : ""}
+      <label>Rollen</label><div>${Object.entries(ROLLEN).map(([k, l]) => `<label class="check" style="margin:2px 0;font-size:14px"><input type="checkbox" name="rolle" value="${k}" ${m.rollen.includes(k) ? "checked" : ""} ${admin ? "" : "disabled"}>${l}</label>`).join("")}${m.rollen.some(r => SL_ROLLEN[r]) ? `<div class="small muted" style="margin-top:4px">🎼 ${m.rollen.filter(r => SL_ROLLEN[r]).map(r => SL_ROLLEN[r]).join(" · ")} <span>(vergibt Michael in den Setlisten)</span></div>` : ""}</div>
+      ${canM ? `<div class="actions"><button class="mini primary">Speichern</button>${m.id !== me.id ? `<button class="mini" type="button" data-einladen="${m.id}">${st.angemeldet ? "Neues Gerät / neu einladen" : st.offen ? "Neuen Code erzeugen" : "Einladen"}</button>` : ""}</div>` : ""}
     </form>`); }).join("")}
     ${canM ? `<button id="neuM" class="primary">+ Neuen Musiker anlegen</button>` : ""}
     ${admin || has("auftritte") || has("proben") ? `
@@ -1243,7 +1247,7 @@ function viewVerwaltung() {
     if (m.id === me.id && m.rollen.includes("admin") && !rollen.includes("admin") && !await ask("Du entfernst deine eigene Admin-Rolle. Sicher?")) return;
     if (!f.name.value.trim()) { toast("Bitte einen Namen eingeben."); return; }
     if (D().mitglieder.some(x => x.id !== m.id && x.name.trim().toLowerCase() === f.name.value.trim().toLowerCase())) { toast("Diesen Namen gibt es schon – bitte unterscheidbar machen (z. B. mit Nachnamen-Kürzel)."); return; }
-    await S.upsert("mitglieder", { ...m, name: f.name.value.trim(), telefon: f.telefon ? f.telefon.value.trim() : (m.telefon || ""), email: f.email ? (f.email.value.trim().toLowerCase() || null) : m.email, register, rollen: admin ? rollen : m.rollen });
+    await S.upsert("mitglieder", { ...m, name: f.name.value.trim(), telefon: f.telefon ? f.telefon.value.trim() : (m.telefon || ""), email: f.email ? (f.email.value.trim().toLowerCase() || null) : m.email, register, rollen: admin ? [...rollen.filter(r => !SL_ROLLEN[r]), ...m.rollen.filter(r => SL_ROLLEN[r])] : m.rollen });
     toast("Gespeichert");
   }));
   app().querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
@@ -1264,9 +1268,7 @@ function viewVerwaltung() {
     if (istPlatzhalter(m)) { toast("Bitte zuerst den richtigen Namen eintragen und speichern."); return; }
     if (!m.register.length && !await ask(`${m.name} hat noch kein Register. Trotzdem einladen?`)) return;
     const st = einladeStatus(m);
-    if (m.id === me.id) {
-      if (!await ask("Code für ein weiteres Gerät (z. B. PC oder Tablet) erzeugen? Dieses Gerät bleibt angemeldet.")) return;
-    } else if ((st.offen || st.angemeldet) && !await ask(st.angemeldet ? `${m.name} ist schon angemeldet. Neuen Code für ein weiteres oder neues Handy erzeugen?` : "Es gibt schon einen offenen Code. Neuen erzeugen? Der alte wird ungültig.")) return;
+    if ((st.offen || st.angemeldet) && !await ask(st.angemeldet ? `${m.name} ist schon angemeldet. Neuen Code für ein weiteres oder neues Handy erzeugen?` : "Es gibt schon einen offenen Code. Neuen erzeugen? Der alte wird ungültig.")) return;
     try { const r = await S.einladungErstellen(m.id); einladungZeigen(m, r.code, r.gueltig_bis); } catch (e) { toast("Fehler: " + esc(e.message), 6000); }
   }));
   app().querySelectorAll("[data-af]").forEach(f => f.addEventListener("submit", async e => {
