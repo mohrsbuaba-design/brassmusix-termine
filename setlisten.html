@@ -37,7 +37,17 @@ button{cursor:pointer}
 .pill{font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid var(--line2);color:var(--mut);white-space:nowrap}
 .pill.ok{border-color:#3b5a38;color:var(--ok)}.pill.busy{border-color:var(--bronze);color:var(--gold2)}.pill.warn{border-color:#6b3430;color:#f0a09a}
 .app{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:calc(100vh - 74px)}
-aside{border-right:1px solid var(--line);padding:16px 14px;background:#151515}
+aside{border-right:1px solid #4d3d18;padding:16px 14px;background:linear-gradient(180deg,#2c2411 0%,#221c0e 55%,#1c170c 100%)}
+aside .gi{background:rgba(0,0,0,.28);border-color:#4d3d18}aside .gi:hover{border-color:#7a6227}
+aside .gi.on{background:#3e3113;border-color:var(--gold)}
+aside .btn{background:rgba(0,0,0,.3);border-color:#5a4720}aside .btn:hover{border-color:var(--gold)}
+aside .helpbox{color:#bdb29a}
+details.sec{margin:0 0 18px}
+details.sec>summary{list-style:none;pointer-events:none;display:block}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec .st{display:block;font:400 22px/1 'Bebas Neue';color:var(--gold);margin:6px 0 10px;letter-spacing:.03em}
+details.sec .ss{display:none}
+.mback{display:none}
 aside h2{font:400 22px/1 'Bebas Neue';color:var(--gold);margin:6px 0 10px;letter-spacing:.03em}
 .gl{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .gi{display:block;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:44px}
@@ -229,9 +239,20 @@ table.lib input.durin{width:66px}
 .helpbox code{background:#0f0f0f;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--gold2)}
 @media(max-width:900px){
  .app{grid-template-columns:1fr}
- aside{border-right:none;border-bottom:1px solid var(--line)}
- .gl{flex-direction:row;overflow-x:auto;padding-bottom:4px}
- .gi{min-width:180px}
+ aside{border:none;background:none;padding:14px max(3vw,14px) 30px}
+ body.m-main aside{display:none}
+ body:not(.m-main) main{display:none}
+ details.sec{margin:0 0 10px;border:1px solid #5a4720;border-radius:12px;background:linear-gradient(180deg,#2c2411,#211b0e);overflow:hidden}
+ details.sec[open]{border-color:var(--gold)}
+ details.sec>summary{pointer-events:auto;cursor:pointer;padding:14px 46px 14px 16px;min-height:64px;position:relative}
+ details.sec>summary::after{content:"";position:absolute;right:18px;top:50%;width:10px;height:10px;margin-top:-7px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(45deg);transition:transform .2s}
+ details.sec[open]>summary::after{transform:rotate(225deg);margin-top:-2px}
+ details.sec .st{font-size:26px;margin:0}
+ details.sec .ss{display:block;font-size:14px;color:#cbbf9f;margin-top:2px}
+ details.sec .sb{padding:0 14px 14px}
+ .gl{flex-direction:column}
+ .gi{min-height:56px;padding:10px 12px}
+ .mback{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;background:#2c2411;border:1px solid #5a4720;color:var(--gold2);border-radius:10px;padding:8px 14px;min-height:44px;font-weight:600}
  .fields{grid-template-columns:1fr 1fr!important}
 }
 @media(max-width:600px){
@@ -263,21 +284,21 @@ table.lib input.durin{width:66px}
 </header>
 <div class="app">
   <aside>
-    <h2>Auftritte</h2>
+    <details class="sec" data-sec="gigs"><summary><span class="st">🎺 Auftritte</span><span class="ss" id="gigsum"></span></summary><div class="sb">
     <div class="gl" id="gigs"></div>
     <p class="helpbox ed" style="margin-top:0">Bestätigte Auftritte aus der Termin-App erscheinen hier automatisch.</p>
-    <button class="btn full ed" id="newGig">+ Auftritt ohne Termin</button>
-    <div class="ed"><h2 style="margin-top:22px">Repertoire</h2>
+    <button class="btn full ed" id="newGig">+ Auftritt ohne Termin</button></div></details>
+    <details class="sec ed" data-sec="rep"><summary><span class="st">🎼 Repertoire</span><span class="ss" id="libsum"></span></summary><div class="sb">
     <button class="btn full" id="toLib">Stückliste &amp; Dauern</button>
     <button class="btn full" id="toGenres" style="margin-top:6px">Gespeicherte Blöcke</button>
-    <p class="helpbox" id="libinfo"></p></div>
-    <div class="su"><h2 style="margin-top:22px">Zugriff</h2>
-    <button class="btn full" id="toAcc">Rechte verwalten</button></div>
-    <div class="ed"><h2 style="margin-top:22px">Sicherung</h2>
+    <p class="helpbox" id="libinfo"></p></div></details>
+    <details class="sec su" data-sec="acc"><summary><span class="st">🔑 Zugriff</span><span class="ss">Wer darf bearbeiten und abstimmen</span></summary><div class="sb">
+    <button class="btn full" id="toAcc">Rechte verwalten</button></div></details>
+    <details class="sec ed" data-sec="bk"><summary><span class="st">💾 Sicherung</span><span class="ss">Backup speichern oder laden</span></summary><div class="sb">
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn s" id="bkOut">Backup speichern</button>
       <label class="btn s">Backup laden<input type="file" id="bkIn" accept=".json" hidden></label>
-    </div></div>
+    </div></div></details>
   </aside>
   <main id="main"></main>
 </div>
@@ -491,14 +512,25 @@ function renderGigs(){const arr=Object.values(S.gigs).sort((a,b)=>(a.date||'9999
   $('#gigs').innerHTML=arr.length?arr.map(g=>{const t=g.sets.reduce((a,s)=>a+setStats(s).t,0);
     return `<button class="gi ${g.id===ui.gig&&ui.view==='gig'?'on':''} ${g.date&&g.date<today?'past':''}" data-gig="${g.id}"><b>${esc(g.name||'Ohne Namen')}${canEditSL()&&!g.freigabe?' <span style="font-size:11px;color:var(--mut);font-weight:400">· nicht freigegeben</span>':''}</b><small>${g.date?new Date(g.date+'T12:00').toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}):'ohne Datum'} · ${g.sets.length} Set${g.sets.length===1?'':'s'} · ${fmt(t)||'0:00'}</small></button>`}).join(''):`<p class="muted" style="font-size:14px">${canEditSL()?'Noch keine Auftritte.':'Noch keine Setliste freigegeben.'}</p>`;
   const tops=S.lib.items.filter(i=>!parentOf[i.n]&&!isCue(i.n));const n=tops.length,miss=tops.filter(i=>songDur(i.n).d==null).length;
+  const up=arr.filter(g=>!g.date||g.date>=today);$('#gigsum').textContent=arr.length?(up.length?`${up.length} anstehend · nächster: ${up[0].name}${up[0].date?' am '+up[0].date.split('-').reverse().join('.'):''}`:arr.length+' Auftritt(e)'):(canEditSL()?'Noch keine Auftritte':'Noch keine Setliste freigegeben');
+  $('#libsum').textContent=n?`${n} Stücke · Stückliste & gespeicherte Blöcke`:'Stückliste & gespeicherte Blöcke';
   $('#libinfo').innerHTML=n?`${n} Stücke${S.lib.file?' aus <i>'+esc(S.lib.file)+'</i>':''}.<br>${miss} Titel noch ohne Dauer.`:'Noch keine Masterliste geladen.'}
 
-function render(){document.body.classList.toggle('ro',!canEditSL());document.body.classList.toggle('su',isSuper());$('#who').textContent=ME||'…';renderGigs();setStatus();renderMain();roLock();drawPicker();banner();if(ui.jump){const id=ui.jump;ui.jump=null;requestAnimationFrame(()=>{const r=document.querySelector(`.row[data-id="${id}"]`);if(r){r.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});r.classList.add('flash');setTimeout(()=>r.classList.remove('flash'),1600)}})}}
+function render(){document.body.classList.toggle('ro',!canEditSL());document.body.classList.toggle('m-main',store.mode!=='db'||ui.mhome===false);document.body.classList.toggle('su',isSuper());$('#who').textContent=ME||'…';renderGigs();setStatus();renderMain();roLock();drawPicker();banner();syncSecs();if(ui.jump){const id=ui.jump;ui.jump=null;requestAnimationFrame(()=>{const r=document.querySelector(`.row[data-id="${id}"]`);if(r){r.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});r.classList.add('flash');setTimeout(()=>r.classList.remove('flash'),1600)}})}}
 function banner(){let el=$('#vban');if(!el){el=document.createElement('div');el.id='vban';$('.app').before(el)}
   const pend=[];for(const g of Object.values(S.gigs))for(const [s,it] of openVotes(g)){const v=ME_ID&&S.votes[vId(g.id,it.id)];if(!v||it.opts.some(o=>typeof(v.v||{})[o]!=='number'))pend.push(g)}
   if(!pend.length){el.innerHTML='';return}
   el.innerHTML=`<div style="background:#3a2e12;border-bottom:1px solid var(--gold);padding:8px max(3vw,14px);display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--gold2)">🗳️ ${ME?`${esc(ME)}, du hast noch ${pend.length} offene Abstimmung${pend.length===1?'':'en'}.`:`Es laufen ${pend.length} Abstimmung${pend.length===1?'':'en'}. Bitte oben bei „Ich bin“ deinen Namen wählen.`} <button class="btn s g" data-vgo="${pend[0].id}">Jetzt abstimmen</button></div>`}
-function renderMain(){
+function renderMain(){renderMain0();
+  if(store.mode==='db')$('#main').insertAdjacentHTML('afterbegin','<button class="mback" type="button">← Übersicht</button>')}
+const isMob=()=>matchMedia('(max-width:900px)').matches;
+function syncSecs(){const mob=isMob();ui.secs=ui.secs||{};document.querySelectorAll('details.sec').forEach(d=>{const w=mob?!!ui.secs[d.dataset.sec]:true;if(d.open!==w)d.open=w})}
+document.addEventListener('toggle',e=>{const d=e.target;if(d.classList&&d.classList.contains('sec')&&isMob()){ui.secs=ui.secs||{};ui.secs[d.dataset.sec]=d.open}},true);
+addEventListener('resize',()=>syncSecs());
+document.addEventListener('click',e=>{
+  if(e.target.closest('.mback')){ui.mhome=true;render();scrollTo(0,0);return}
+  if(e.target.closest('aside [data-gig],#toLib,#toGenres,#toAcc,#newGig,[data-vgo]')){ui.mhome=false;setTimeout(()=>scrollTo(0,0),0)}},true);
+function renderMain0(){
   const m=$('#main');
   if(store.mode==='login'){m.innerHTML=loginView();return}
   if(ui.view==='lib'){m.innerHTML=canEditSL()?libView():'';return}
@@ -1168,7 +1200,7 @@ async function saveFile(name,data){
   const url=URL.createObjectURL(new Blob([data]));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Gespeichert: '+name)}
 
 function firstRender(){fromHash();pickDefault();render()}
-function fromHash(){const h=location.hash||'';const m=h.match(/^#(g|vote)-(.+)$/);if(m&&S.gigs[m[2]]){ui.gig=m[2];ui.set=null;ui.view='gig';ui.vt=m[1]==='vote';ui.ov=false}}
+function fromHash(){const h=location.hash||'';const m=h.match(/^#(g|vote)-(.+)$/);if(m&&S.gigs[m[2]]){ui.mhome=false;ui.gig=m[2];ui.set=null;ui.view='gig';ui.vt=m[1]==='vote';ui.ov=false}}
 window.addEventListener('hashchange',()=>{fromHash();render()});
 function pickDefault(){const ids=Object.keys(S.gigs);if(!ui.gig&&ids.length){const today=new Date().toISOString().slice(0,10);const up=Object.values(S.gigs).filter(g=>!g.date||g.date>=today).sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));ui.gig=(up[0]||S.gigs[ids[0]]).id}}
 window.__bmx={S:()=>S,ui,setModel,gemaModel,toXlsx,toDocx,toPdf,index,render,store,docs:()=>GIGDOCS,termine:()=>TERMINE};
